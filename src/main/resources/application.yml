@@ -1,0 +1,169 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: hospital-reminder
+  
+  # Virtual Threads Configuration
+  threads:
+    virtual:
+      enabled: true
+  
+  # Database Configuration
+  datasource:
+    url: jdbc:postgresql://localhost:5433/hospital_reminder
+    username: hospital_user
+    password: hospital_pass
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+  
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        use_sql_comments: true
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+  
+  # Flyway Migrations
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+  
+  # Email Configuration
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${EMAIL_USERNAME:}
+    password: ${EMAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+  
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# OpenAPI Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+  info:
+    title: Hospital Reminder API
+    description: API de lembretes médicos escalonados com zero message loss
+    version: 1.0.0
+    contact:
+      name: Hospital System Team
+      email: support@hospital.com
+
+# API Key Configuration
+security:
+  api-key:
+    header-name: X-API-KEY
+    secret-key: ${API_KEY_SECRET:hospital-api-key-2024-secret}
+
+# Resilience4j Configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      emailService:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 30s
+        failure-rate-threshold: 50
+      smsService:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 30s
+        failure-rate-threshold: 50
+      whatsappService:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 30s
+        failure-rate-threshold: 50
+
+# Logging Configuration
+logging:
+  level:
+    com.hospital.reminder: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/hospital-reminder.log
+
+# Custom Application Properties
+hospital:
+  reminder:
+    # Fases de pressão dos lembretes
+    phases:
+      phase1:
+        hours-before: 24
+        channels: [EMAIL, SMS]
+        message-template: "Lembrete: {medication} amanhã às {time}. Dr. {doctor_name}"
+      phase2:
+        hours-before: 2
+        channels: [EMAIL, SMS, WHATSAPP]
+        message-template: "URGENTE: {medication} em 2 horas às {time}. Dr. {doctor_name}"
+      phase3:
+        hours-before: 0
+        channels: [SMS, WHATSAPP]
+        message-template: "IMEDIATO: {medication} AGORA às {time}. Dr. {doctor_name}"
+    
+    # Configurações de retry
+    retry:
+      max-attempts: 3
+      delay-ms: 1000
+      backoff-multiplier: 2
+    
+    # Configurações de dead letter queue
+    dlq:
+      enabled: true
+      retry-attempts: 5
+      max-delay-ms: 300000

@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: hospital-reminder-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: hospital_reminder
+      POSTGRES_USER: hospital_user
+      POSTGRES_PASSWORD: hospital_pass
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - hospital-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hospital_user -d hospital_reminder"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  hospital-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
