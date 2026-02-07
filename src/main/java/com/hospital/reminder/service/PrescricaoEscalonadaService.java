@@ -3,12 +3,10 @@ package com.hospital.reminder.service;
 import com.hospital.reminder.dto.AtualizarDadosRequest;
 import com.hospital.reminder.dto.CriarPrescricaoCompletaRequest;
 import com.hospital.reminder.dto.FinalizarPrescricaoRequest;
-import com.hospital.reminder.embedded.ConfiguracaoEscalonamento;
-import com.hospital.reminder.embedded.MedicoEmbeddable;
-import com.hospital.reminder.embedded.PacienteEmbeddable;
 import com.hospital.reminder.entity.PrescricaoEscalonada;
 import com.hospital.reminder.enums.CanalComunicacao;
 import com.hospital.reminder.enums.FaseRetorno;
+import com.hospital.reminder.mapper.PrescricaoEscalonadaMapper;
 import com.hospital.reminder.repository.PrescricaoEscalonadaRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -29,35 +27,10 @@ public class PrescricaoEscalonadaService {
 
     private final PrescricaoEscalonadaRepository repository;
     private final NotificationService notificationService;
+    private final PrescricaoEscalonadaMapper prescricaoEscalonadaMapper;
 
     public PrescricaoEscalonada criarPrescricao(CriarPrescricaoCompletaRequest request) {
-        PrescricaoEscalonada prescricao = new PrescricaoEscalonada();
-
-        prescricao.setPaciente(new PacienteEmbeddable());
-        prescricao.setMedico(new MedicoEmbeddable());
-        prescricao.setConfiguracao(new ConfiguracaoEscalonamento());
-
-        prescricao.getPaciente().setIdExterno(request.paciente().id());
-        prescricao.getPaciente().setNome(request.paciente().nome());
-        prescricao.getPaciente().setTelefone(request.paciente().telefone());
-        prescricao.getPaciente().setEmail(request.paciente().email());
-
-        prescricao.getMedico().setIdExterno(request.medico().id());
-        prescricao.getMedico().setNome(request.medico().nome());
-        prescricao.getMedico().setCrm(request.medico().crm());
-        prescricao.getMedico().setEmail(request.medico().email());
-
-        prescricao.getConfiguracao().setPrazoFase1Dias(request.configuracao().prazoFase1Dias());
-        prescricao.getConfiguracao().setPrazoFase2Dias(request.configuracao().prazoFase2Dias());
-        prescricao.getConfiguracao().setMaxDiasFase3(request.configuracao().maxDiasFase3());
-        prescricao.getConfiguracao().setCanais(
-                request.configuracao().canais().stream().map(Enum::name).toArray(String[]::new)
-        );
-        prescricao.getConfiguracao().setTelefoneHospital(request.configuracao().telefoneHospital());
-
-        prescricao.setSistemaOrigem(request.metadata().sistemaOrigem());
-        prescricao.setUsuarioIdExterno(request.metadata().usuarioId());
-        prescricao.setConsultaIdExterno(request.metadata().consultaId());
+        PrescricaoEscalonada prescricao = prescricaoEscalonadaMapper.toEntity(request);
 
         prescricao.setFaseAtual(FaseRetorno.FASE1);
         prescricao.setFinalizada(false);
